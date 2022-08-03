@@ -1,55 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { Readable } from 'stream';
-import {
-  Image,
-  CanvasRenderingContext2D,
-  loadImage,
-  createCanvas,
-  PNGStream,
-  Canvas,
-  createImageData,
-} from 'canvas';
-import { v4 as uuidv4 } from 'uuid';
-type SliderProperties = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  r: number;
-  radius?: number;
-};
-class CaptchaStream {
-  constructor(slider: Readable, bg: Readable) {
-    this.bg = bg;
-    this.slider = slider;
-  }
-  slider: Readable;
-  bg: Readable;
-}
+import { loadImage, createCanvas, Canvas } from 'canvas';
+import { SliderProperties } from 'src/types/SliderProperties';
+import CaptchaStream from 'src/class/CaptchaStream';
+import { v4 } from 'uuid';
+import { remove, upload } from 'src/util/fdfs';
+import { CaptchaVo } from 'src/types/CaptchaRes';
+
 const w = 50;
 const h = 50;
 const r = 8;
 const radius = 5;
 const padding = 7;
 const illegalArr = [0, 1, 2, 4, 7, 15];
-const CAPTCHA_MAP = new Map<string, Promise<CaptchaStream>>();
 
 @Injectable()
 export class CaptchaService {
-  getCaptcha(buffer: Buffer): string {
+  async getCaptcha(buffer: Buffer): Promise<CaptchaVo> {
     const sliderCanvas = createCanvas(80, 80);
     const bgCanvas = createCanvas(300, 200);
-    const key = uuidv4();
-    CAPTCHA_MAP.set(key, loadImageFromRequest(buffer, sliderCanvas, bgCanvas));
-    return key;
-  }
-
-  async getSlider(uuid: string): Promise<PNGStream> {
-    const rr = await CAPTCHA_MAP.get(uuid)
-    return rr.slider;
-  }
-  async getBg(uuid: string): Promise<PNGStream> {
-    return (await CAPTCHA_MAP.get(uuid)).bg;
+    const stream = await loadImageFromRequest(buffer, sliderCanvas, bgCanvas);
+    const bgPath = await upload(stream.bg);
+    const sliderPath = await upload(stream.slider);
+    return {
+      bg: bgPath,
+      slice: sliderPath,
+      lotNumber: v4(),
+      payload: 'some encryptor data',
+      ypos: stream.y - padding - r,
+      feedback: '',
+      processToken: v4(),
+      captchaType: 'slider',
+    };
   }
 }
 
@@ -83,9 +64,9 @@ async function loadImageFromRequest(
   const x = Math.random() * 220;
   const y = Math.random() * 120;
   tmp.drawImage(sliderContext, x, y);
-  ctx.shadowColor = 'rgba(0, 0, 0, .6)';
-  ctx.shadowBlur = 5;
-  ctx.shadowOffsetX = 2;
+  ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+  ctx.shadowBlur = 7;
+  ctx.shadowOffsetX = 4;
   ctx.fill();
   tmp.drawImage(sliderContext, x, y);
   slider.drawImage(tmpCanvas, -x, -y);
@@ -102,10 +83,8 @@ async function loadImageFromRequest(
   ctx.fillStyle = `rgba(0, 0, 0, 0.5)`;
   ctx.fill();
   bg.drawImage(sliderContext, x, y);
-  return new CaptchaStream(
-    sliderCanvas.createPNGStream(),
-    bgCanvas.createPNGStream(),
-  );
+  console.log(x, y);
+  return new CaptchaStream(sliderCanvas.toBuffer(), bgCanvas.toBuffer(), x, y);
 }
 
 function getCaptcha(p: SliderProperties, strategy: boolean[]) {

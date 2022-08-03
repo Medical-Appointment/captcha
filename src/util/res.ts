@@ -1,24 +1,28 @@
 export default class R {
-  constructor(code: number, msg?: string, data?: Map<string, any>) {
+  constructor(code: number, msg?: string, data?: any) {
     if (this.data == null) {
       this.data = Object.create(null);
     }
-    data.forEach((v, k) => {
-      this.data[k] = v;
-    });
+    if (data instanceof Map) {
+      data.forEach((v, k) => {
+        this.data[k] = v;
+      });
+    } else {
+      this.data = data;
+    }
     this.code = code;
     this.msg = msg;
   }
   data: any;
   code: number;
   msg: string;
-  static ok(code: number, msg: string, data?: Map<string, any>): R {
+  static ok(code: number, msg?: string, data?: Map<string, any>): R {
     return new R(code, msg, data);
   }
   static err(code: number, msg: string, data?: Map<string, any>): R {
     return new R(code, msg, data);
   }
-  static ok2(msg: string, data?: Map<string, any>): R {
+  static ok2(msg?: string, data?: Map<string, any>): R {
     return R.ok(200, msg, data);
   }
   static err4(msg: string, data?: Map<string, any>): R {

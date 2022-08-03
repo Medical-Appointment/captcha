@@ -1,47 +1,44 @@
 import {
   Controller,
   Get,
-  Header,
-  Res,
   UseInterceptors,
-  UploadedFiles,
+  UploadedFile,
   StreamableFile,
   Param,
   Post,
+  Body,
+  Res,
+  Query,
 } from '@nestjs/common';
 import R from '../util/res';
-import { FilesInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CaptchaService } from '../svc/captcha.service';
-import { file } from '@babel/types';
+import { CaptchaModel } from 'src/types/CaptchaRes';
+import { remove } from 'src/util/fdfs';
 
 @Controller('/captcha')
 export class CaptchaController {
   constructor(private readonly captchaService: CaptchaService) {}
 
   @Post('/generate')
-  @UseInterceptors(FilesInterceptor('files'))
-  generateCaptcha(@UploadedFiles() files: Array<Express.Multer.File>): R {
-    if (files == null || files.length == 0) {
-      return R.err4('files be must');
+  @UseInterceptors(FileInterceptor('file'))
+  async generateCaptcha(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: CaptchaModel,
+  ): Promise<R> {
+    if (file == null) {
+      return R.err4('file be must');
     }
-    const data = new Map<string, any>();
-    for (let file of files) {
-      data.set(file.originalname, this.captchaService.getCaptcha(file.buffer));
-    }
-    return R.ok2('', data);
+    return R.ok2(
+      '',
+      new Map(
+        Object.entries(await this.captchaService.getCaptcha(file.buffer)),
+      ),
+    );
   }
 
-  @Get('/slider/:uuid')
-  async getSlider(@Param('uuid') key: string): Promise<StreamableFile> {
-    return this.captchaService.getSlider(key).then((r) => {
-      return new StreamableFile(r);
-    });
-  }
-  @Get('/bg/:uuid')
-  async getBg(@Param('uuid') key: string): Promise<StreamableFile> {
-    return this.captchaService.getBg(key).then((r) => {
-      return new StreamableFile(r);
-    });
+  @Get('/finish')
+  finish(@Query('path') path: string) {
+    console.log(remove(path));
   }
 }
