@@ -1,16 +1,17 @@
-type CaptchaModel = {
+import { IsString, IsNotEmpty } from 'class-validator';
+class CaptchaModel {
+  @IsNotEmpty({ message: 'captcha_id can`t be empty' })
   captchaId: string;
+  @IsNotEmpty({ message: 'captcha_id can`t be empty' })
   clientId: string;
   challenge: string;
-  captchaType: string;
+  @IsNotEmpty({ message: 'captcha_id can`t be empty' })
   lotNumber: string;
-  feedback: string;
-  processToken: string;
   states: string;
   payload: string;
-};
+}
 
-type CaptchaVo = {
+class CaptchaVo {
   captchaType: string;
   lotNumber: string;
   feedback: string;
@@ -19,6 +20,6 @@ type CaptchaVo = {
   bg: string;
   slice: string;
   ypos: number;
-};
+}
 
 export { CaptchaModel, CaptchaVo };
