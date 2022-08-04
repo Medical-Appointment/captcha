@@ -3,8 +3,8 @@ import { loadImage, createCanvas, Canvas } from 'canvas';
 import { SliderProperties } from 'src/types/SliderProperties';
 import CaptchaStream from 'src/class/CaptchaStream';
 import { v4 } from 'uuid';
-import { remove, upload } from 'src/util/fdfs';
-import { CaptchaVo } from 'src/types/CaptchaRes';
+import { upload } from 'src/util/fdfs';
+import { CaptchaVo } from 'src/class/CaptchaRes';
 
 const w = 50;
 const h = 50;
@@ -12,21 +12,25 @@ const r = 8;
 const radius = 5;
 const padding = 7;
 const illegalArr = [0, 1, 2, 4, 7, 15];
+const xMap = new Map<string, number>();
 
 @Injectable()
 export class CaptchaService {
   async getCaptcha(buffer: Buffer): Promise<CaptchaVo> {
+    console.log(buffer.byteLength);
     const sliderCanvas = createCanvas(80, 80);
     const bgCanvas = createCanvas(300, 200);
     const stream = await loadImageFromRequest(buffer, sliderCanvas, bgCanvas);
     const bgPath = await upload(stream.bg);
     const sliderPath = await upload(stream.slider);
+    const lotNumber = v4();
+    xMap.set(lotNumber, stream.x);
     return {
       bg: bgPath,
       slice: sliderPath,
-      lotNumber: v4(),
+      lotNumber,
       payload: 'some encryptor data',
-      ypos: stream.y - padding - r,
+      ypos: stream.y,
       feedback: '',
       processToken: v4(),
       captchaType: 'slider',

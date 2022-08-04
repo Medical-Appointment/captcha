@@ -1,5 +1,6 @@
 const FdfsClient = require('fdfs');
 var debug = require('debug')('fdfs');
+import { createReadStream } from 'fs';
 import { parse } from 'url';
 const client = new FdfsClient({
   trackers: [
@@ -36,4 +37,23 @@ const remove = async (path: string): Promise<boolean> => {
   }
   return true;
 };
-export { upload, remove };
+const download = async (fileId: string): Promise<Buffer> => {
+  const target = 'tmp.png'
+  let stream = createReadStream(target)
+  createReadStream
+  await client.download(fileId,target);
+  return new Promise<Buffer>((resolve, reject) => {
+    let buffers = [];
+    stream.on('error', reject);
+    stream.on('data', (data) => {
+      buffers.push(data);
+    });
+    stream.on('end', () => resolve(Buffer.concat(buffers)));
+  })
+    .then((r) => r)
+    .catch((e) => {
+      console.log(e);
+      return Buffer.concat([]);
+    });
+};
+export { upload, remove, download };
